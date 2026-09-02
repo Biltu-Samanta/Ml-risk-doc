@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Road Risk ML — Project Guide</title>
+<style>
+  :root {
+    --bg:#f4f7fb; --card:#fff; --text:#172033; --muted:#667085;
+    --primary:#2563eb; --primary-dark:#1d4ed8; --border:#dbe3ef;
+    --code:#111827; --code-text:#e5e7eb; --success:#15803d;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.55;
+  }
+  header {
+    background:linear-gradient(135deg,#172554,#2563eb); color:white; padding:42px 24px;
+  }
+  .header-inner { max-width:1100px; margin:auto; }
+  h1 { margin:0 0 8px; font-size:clamp(28px,4vw,44px); }
+  .subtitle { margin:0; opacity:.9; max-width:760px; }
+  .toolbar {
+    position:sticky; top:0; z-index:10; background:#ffffffee; backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border); padding:12px 20px;
+  }
+  .toolbar-inner { max-width:1100px; margin:auto; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button, select {
+    border:1px solid var(--border); background:white; color:var(--text); padding:9px 13px;
+    border-radius:9px; cursor:pointer; font-weight:600;
+  }
+  button.primary { background:var(--primary); color:white; border-color:var(--primary); }
+  button.primary:hover { background:var(--primary-dark); }
+  button.danger { color:#b42318; }
+  .status { margin-left:auto; color:var(--success); font-size:14px; font-weight:600; }
+  main { max-width:1100px; margin:28px auto 60px; padding:0 20px; }
+  .notice {
+    background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 16px; margin-bottom:20px;
+  }
+  .step {
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:22px; margin:16px 0; box-shadow:0 2px 10px #1018280a;
+  }
+  .step h2 { margin:0 0 12px; font-size:21px; }
+  .step-number {
+    display:inline-flex; width:30px; height:30px; align-items:center; justify-content:center;
+    background:#dbeafe; color:#1d4ed8; border-radius:50%; margin-right:8px; font-size:14px;
+  }
+  .editable {
+    outline:none; border-radius:7px; padding:2px 4px; min-height:1em;
+  }
+  .editable:focus { box-shadow:0 0 0 2px #93c5fd; background:#eff6ff; }
+  pre {
+    background:var(--code); color:var(--code-text); padding:16px; border-radius:10px;
+    overflow:auto; position:relative; font-size:14px;
+  }
+  pre.editable {
+    color:var(--code-text);
+    background:var(--code);
+    caret-color:#fff;
+    white-space:pre-wrap;
+  }
+  pre.editable:focus {
+    background:#111827;
+    color:#f9fafb;
+    outline:2px solid #60a5fa;
+    outline-offset:1px;
+  }
+  pre.editable code {
+    color:inherit;
+    background:transparent;
+  }
+  code { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; }
+  .copy {
+    position:absolute; right:8px; top:8px; font-size:12px; padding:5px 8px;
+    background:#374151; color:white; border:0;
+  }
+  .history-panel {
+    display:none; background:white; border:1px solid var(--border); border-radius:12px;
+    padding:15px; margin-top:10px;
+  }
+  .history-item {
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:10px 0; border-bottom:1px solid var(--border);
+  }
+  .history-item:last-child { border-bottom:0; }
+  .history-actions { display:flex; gap:6px; }
+  footer { text-align:center; color:var(--muted); padding:30px; }
+  @media print {
+    body { background:white; }
+    header { color:#000; background:white; padding:0 0 20px; }
+    .toolbar, .notice, footer, .copy, .history-panel { display:none !important; }
+    main { max-width:none; margin:0; padding:0; }
+    .step { box-shadow:none; break-inside:avoid; margin:10px 0; }
+    .editable:focus { box-shadow:none; background:transparent; }
+    @page { margin:14mm; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1 contenteditable="true" class="editable" data-field="title">Road Risk ML — Project Guide</h1>
+    <p contenteditable="true" class="editable subtitle" data-field="subtitle">
+      A practical step-by-step workflow for building, training, evaluating and saving a road-risk XGBoost model.
+    </p>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <button class="primary" onclick="saveVersion()">Save Version</button>
+    <button onclick="addStep()">+ Add Step</button>
+    <button onclick="exportPDF()">Convert to PDF</button>
+    <button onclick="toggleHistory()">Past Data / Versions</button>
+    <button onclick="resetCurrent()">Reset Current</button>
+    <span id="status" class="status"></span>
+  </div>
+</div>
+
+<main id="content">
+  <div class="notice">
+    <strong>Editable page:</strong> click any heading, paragraph, or code block and modify it.
+    Use <strong>Save Version</strong> to keep a snapshot in this browser. Past versions can be loaded or deleted from
+    <strong>Past Data / Versions</strong>. PDF export prints the currently modified version.
+  </div>
+
+  <div id="historyPanel" class="history-panel">
+    <strong>Saved past versions</strong>
+    <div id="historyList"></div>
+  </div>
+
+  <section class="step">
+    <h2><span class="step-number">1</span>Create your project folder</h2>
+    <p contenteditable="true" class="editable">Make a folder e.g. <code>road-risk-ml</code> → open it in VS Code (File → Open Folder).</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">2</span>Create a virtual environment</h2>
+    <p contenteditable="true" class="editable">Open VS Code terminal (Ctrl+`) → run:</p>
+    <pre contenteditable="true" class="editable"><code>python -m venv venv</code></pre>
+    <p contenteditable="true" class="editable"><strong>Activate it:</strong></p>
+    <pre contenteditable="true" class="editable"><code># Windows
+venv\Scripts\activate
+
+# Mac/Linux
+source venv/bin/activate</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">3</span>Install required libraries</h2>
+    <pre contenteditable="true" class="editable"><code>pip install pandas numpy scikit-learn xgboost matplotlib seaborn shap jupyter</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">4</span>Select the Python interpreter in VS Code</h2>
+    <p contenteditable="true" class="editable">Ctrl+Shift+P → "Python: Select Interpreter" → choose the one inside your <code>venv</code> folder.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">5</span>Create your data file</h2>
+    <p contenteditable="true" class="editable">Create <code>data.csv</code> in the project folder — either your real data or a synthetic dataset to start.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">6</span>Create your first notebook/script</h2>
+    <p contenteditable="true" class="editable">Create <code>train_model.ipynb</code> or <code>train_model.py</code> in the same folder.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">7</span>Load and inspect the data</h2>
+    <pre contenteditable="true" class="editable"><code>import pandas as pd
+
+df = pd.read_csv("data.csv")
+df.head()
+df.info()</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">8</span>Clean the data</h2>
+    <p contenteditable="true" class="editable">Handle nulls, fix types, and remove duplicates using <code>df.dropna()</code>, <code>df.fillna()</code>, and <code>df.drop_duplicates()</code>.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">9</span>Feature engineering</h2>
+    <p contenteditable="true" class="editable">Create new columns such as season, rolling rainfall, and encoded categories using pandas.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">10</span>Define features (X) and target (y)</h2>
+    <pre contenteditable="true" class="editable"><code>X = df.drop(columns=["outcome", "date", "road_segment_id"])
+y = df["outcome"]</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">11</span>Split into train/test sets</h2>
+    <pre contenteditable="true" class="editable"><code>from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">12</span>Train baseline XGBoost model</h2>
+    <pre contenteditable="true" class="editable"><code>from xgboost import XGBClassifier
+
+model = XGBClassifier()
+model.fit(X_train, y_train)</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">13</span>Evaluate the model</h2>
+    <pre contenteditable="true" class="editable"><code>from sklearn.metrics import classification_report
+
+preds = model.predict(X_test)
+print(classification_report(y_test, preds))</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">14</span>Tune hyperparameters</h2>
+    <p contenteditable="true" class="editable">Use <code>GridSearchCV</code> to try different <code>max_depth</code>, <code>n_estimators</code>, and <code>learning_rate</code> values.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">15</span>Check feature importance</h2>
+    <pre contenteditable="true" class="editable"><code>import shap
+
+explainer = shap.Explainer(model)
+shap_values = explainer(X_test)
+shap.summary_plot(shap_values, X_test)</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">16</span>Save the trained model</h2>
+    <pre contenteditable="true" class="editable"><code>model.save_model("risk_model.json")</code></pre>
+  </section>
+
+  <section class="step">
+    <h2><span class="step-number">17</span>Write a prediction function</h2>
+    <pre contenteditable="true" class="editable"><code>def predict_risk(new_data):
+    return model.predict_proba(new_data)[:, 1]</code></pre>
+  </section>
+</main>
+
+<footer>Road Risk ML Project Guide • Local browser editing and version history</footer>
+
+<script>
+const STORAGE_KEY = "roadRiskML_current";
+const HISTORY_KEY = "roadRiskML_history";
+
+function snapshot() {
+  return {
+    title: document.querySelector('[data-field="title"]').innerText,
+    subtitle: document.querySelector('[data-field="subtitle"]').innerText,
+    content: document.getElementById("content").innerHTML
+  };
+}
+
+function restore(data) {
+  document.querySelector('[data-field="title"]').innerText = data.title;
+  document.querySelector('[data-field="subtitle"]').innerText = data.subtitle;
+  document.getElementById("content").innerHTML = data.content;
+  bindCopyButtons();
+}
+
+function saveCurrent() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));
+}
+
+function saveVersion() {
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  history.unshift({ id: Date.now(), savedAt: new Date().toLocaleString(), data: snapshot() });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 30)));
+  saveCurrent();
+  renderHistory();
+  showStatus("Version saved");
+}
+
+function loadCurrent() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { restore(JSON.parse(saved)); } catch(e) {}
+  }
+}
+
+function resetCurrent() {
+  if (!confirm("Reset the current page to the original content? Saved past versions will remain.")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function toggleHistory() {
+  const panel = document.getElementById("historyPanel");
+  panel.style.display = panel.style.display === "block" ? "none" : "block";
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  if (!history.length) {
+    list.innerHTML = '<p style="color:#667085">No saved versions yet.</p>';
+    return;
+  }
+  list.innerHTML = history.map((item, index) => `
+    <div class="history-item">
+      <span>Version ${history.length - index} — ${escapeHtml(item.savedAt)}</span>
+      <span class="history-actions">
+        <button onclick="loadVersion(${item.id})">Load</button>
+        <button class="danger" onclick="deleteVersion(${item.id})">Delete</button>
+      </span>
+    </div>
+  `).join("");
+}
+
+function loadVersion(id) {
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  const item = history.find(x => x.id === id);
+  if (!item) return;
+  restore(item.data);
+  saveCurrent();
+  showStatus("Past version loaded");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function deleteVersion(id) {
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.filter(x => x.id !== id)));
+  renderHistory();
+}
+
+function exportPDF() {
+  saveCurrent();
+  window.print();
+}
+
+
+function addStep() {
+  const content = document.getElementById("content");
+  const steps = content.querySelectorAll(".step");
+  const nextNumber = steps.length + 1;
+
+  const section = document.createElement("section");
+  section.className = "step";
+  section.innerHTML = `
+    <h2><span class="step-number">${nextNumber}</span><span contenteditable="true" class="editable">New Step</span></h2>
+    <p contenteditable="true" class="editable">Describe what the user should do in this step.</p>
+    <pre contenteditable="true" class="editable"><code># Add your code here</code></pre>
+    <button onclick="this.closest('.step').remove(); renumberSteps(); saveCurrent(); showStatus('Step removed')">Remove Step</button>
+  `;
+
+  content.appendChild(section);
+  bindCopyButtons();
+  saveCurrent();
+
+  section.scrollIntoView({behavior:"smooth", block:"center"});
+  const title = section.querySelector("h2 .editable");
+  title.focus();
+  showStatus("New step added");
+}
+
+function renumberSteps() {
+  document.querySelectorAll("#content .step").forEach((step, index) => {
+    const number = step.querySelector(".step-number");
+    if (number) number.textContent = index + 1;
+  });
+  saveCurrent();
+}
+
+function showStatus(text) {
+  const el = document.getElementById("status");
+  el.textContent = text;
+  setTimeout(() => el.textContent = "", 2200);
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, m => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
+  }[m]));
+}
+
+function bindCopyButtons() {
+  document.querySelectorAll("pre").forEach(pre => {
+    if (pre.querySelector(".copy")) return;
+    const btn = document.createElement("button");
+    btn.className = "copy";
+    btn.textContent = "Copy";
+    btn.onclick = async () => {
+      const code = pre.querySelector("code");
+      await navigator.clipboard.writeText(code ? code.innerText : pre.innerText);
+      btn.textContent = "Copied";
+      setTimeout(() => btn.textContent = "Copy", 1200);
+    };
+    pre.appendChild(btn);
+  });
+}
+
+document.addEventListener("input", () => {
+  clearTimeout(window.saveTimer);
+  window.saveTimer = setTimeout(saveCurrent, 500);
+});
+
+bindCopyButtons();
+loadCurrent();
+renderHistory();
+</script>
+</body>
+</html>
